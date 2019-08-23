@@ -1,7 +1,7 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.5.2;
 
-import "zeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
-import "zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./BancorFormula.sol";
 
 
@@ -12,7 +12,7 @@ import "./BancorFormula.sol";
  * https://github.com/bancorprotocol/contracts
  * https://github.com/ConsenSys/curationmarkets/blob/master/CurationMarkets.sol
  */
-contract BondingCurve is StandardToken, BancorFormula, Ownable {
+contract BondingCurve is ERC20, BancorFormula, Ownable {
   /**
    * @dev Available balance of reserve token in contract
    */
@@ -41,7 +41,7 @@ contract BondingCurve is StandardToken, BancorFormula, Ownable {
    * @dev default function
    * gas ~ 91645
    */
-  function() public payable {
+  function() external payable {
     buy();
   }
 
@@ -52,11 +52,11 @@ contract BondingCurve is StandardToken, BancorFormula, Ownable {
    */
   function buy() validGasPrice public payable returns(bool) {
     require(msg.value > 0);
+    uint256 totalSupply_ = totalSupply();
     uint256 tokensToMint = calculatePurchaseReturn(totalSupply_, poolBalance, reserveRatio, msg.value);
-    totalSupply_ = totalSupply_.add(tokensToMint);
-    balances[msg.sender] = balances[msg.sender].add(tokensToMint);
+    _mint(msg.sender, tokensToMint);
     poolBalance = poolBalance.add(msg.value);
-    LogMint(tokensToMint, msg.value);
+    emit LogMint(tokensToMint, msg.value);
     return true;
   }
 
@@ -67,13 +67,13 @@ contract BondingCurve is StandardToken, BancorFormula, Ownable {
    * TODO implement maxAmount that helps prevent miner front-running
    */
   function sell(uint256 sellAmount) validGasPrice public returns(bool) {
-    require(sellAmount > 0 && balances[msg.sender] >= sellAmount);
+    require(sellAmount > 0 && balanceOf(msg.sender) >= sellAmount);
+    uint256 totalSupply_ = totalSupply();
     uint256 ethAmount = calculateSaleReturn(totalSupply_, poolBalance, reserveRatio, sellAmount);
     msg.sender.transfer(ethAmount);
+    _burn(msg.sender, sellAmount);
     poolBalance = poolBalance.sub(ethAmount);
-    balances[msg.sender] = balances[msg.sender].sub(sellAmount);
-    totalSupply_ = totalSupply_.sub(sellAmount);
-    LogWithdraw(sellAmount, ethAmount);
+    emit LogWithdraw(sellAmount, ethAmount);
     return true;
   }
 

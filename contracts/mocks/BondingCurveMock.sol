@@ -1,21 +1,20 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.5.2;
 
 import "../BondingCurve.sol";
 
 
 contract BondingCurveMock is BondingCurve {
-  function BondingCurveMock(
-    uint256 _totalSupply,
+  constructor(
+    uint256 _supply,
     uint32 _reserveRatio,
+    address _owner,
     uint256 _gasPrice) public payable
   {
 
     reserveRatio = _reserveRatio;
-    totalSupply_ = _totalSupply;
     poolBalance = msg.value;
     gasPrice = _gasPrice;
 
-    balances[owner] = _totalSupply;
-    Transfer(0x0, owner, _totalSupply);
+    _mint(_owner, _supply);
   }
 }
